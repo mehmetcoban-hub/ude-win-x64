@@ -66,7 +66,7 @@ bir `foreach` döngüsü (default-on, `$env:X -ne '0'`) veya ayrı bloklarla yö
 | **FILEASSOC** | .udf çift-tık açma | `WPAppManager.main`'e `$1=ArgFix.normalize($1)` inject; kontrol-jetonu yoksa (yalnız dosya yolu) başa `getNewWPInstance` ekle (yoksa `a(String[])` erken `return` ediyor) |
 | LIVETOGGLE | Otomatik-düzeltme anında etkin | `...pki.b.l` reflection |
 | TABLEDELETE | Backspace/Delete tablo sil | `WPAppManager.main` inject; `DocumentEx` **void f(int)** overload |
-| IMGFULL | Satır-içi imaj tam-çöz | `editor.utils.h`, `swing.wp.b.at.drawImage` (bicubic) |
+| IMGFULL | Satır-içi imaj tam-çöz | `editor.utils.h` (`h.a(hj,BufferedImage)` → `return $2`) |
 | IMGRESIZE | Fare köşe-tutamağıyla boyutlandırma | `text.hj` paint/mouse + `macosimgresize.ImageResizeController` |
 | ANTET | "Antetlerim" (`%APPDATA%\UDE\Antetler`) | `gui.gR.c()` → `AntetUI.install` |
 | PDFFRESH | "PDF Kaydet" canlı serialize | `text.J.b(File)`: `lo.a(out)` → `lo.a(out,true)` |
@@ -75,6 +75,7 @@ bir `foreach` döngüsü (default-on, `$env:X -ne '0'`) veya ayrı bloklarla yö
 | **CARETFIX** | Zoom imleç/tıklama hizası (sadece Faz-2) | `wp.prof.d.O` modelToView/viewToModel + `wp.textUtils.p.c` |
 | **ZOOMKEYS** | Ctrl+/Ctrl− klavye zoom | `WPAppManager.main` inject; zoom JSlider sür |
 | **LINESPACING** | Satır aralığı menüsüne "1.5" ekle (satıcı unutmuş) | `a.b.a.a.M` kurucu 3. `addMenuButton` ("2.0") öncesine `JCommandMenuButton("1.5")`; dinleyici `O`→`LS15` bytecode kopya (1.15f→1.5f `$0.a(F)V` ExprEditor); `LsInject.make` yansıma fabrikası (obfuscate paket kaynakta FQCN ile anılamaz) |
+| **BGIMG** | Antetli belgede her boyamada bicubic yavaşlığı (perf, Mac portu) | `swing.wp.b.at` içindeki TEK `drawImage(Image,IIII,ImageObserver)` → `macosbgimage.BgPaint.draw($0,$$)` |
 | **BUFREAD** | Büyük UDF açılış donması (perf, Mac portu) | `common.ac.a(InputStream)` başına: null/`BufferedInputStream`/`ByteArrayInputStream` değilse `new BufferedInputStream($1,65536)` sarması. `gui.lo` ham `FileInputStream`'i bayt-bayt (`read()`) okuyordu → bayt başına syscall, EDT'de (Mac ölçümü 10 MB ≈ 9 s → 41 ms). Test: `tests/BufReadAcTest.java` |
 | **ZEMBEREKLAZY** | Kelime Denetimi kapalıyken açılışta Zemberek yüklenmez (perf, Mac portu) | `text.fk.run`: `im.a():Zemberek` çağrısı yalnız `SpellCheck=true` iken; `text.fK`: her tıkta `new Zemberek` → paylaşılan `im.a()`. **`im`'de üç argümansız `a()`** → Bytecode API'li `zlazy$pref`/`zlazy$shared` yardımcıları. `fk`/`fK` NTFS'te çakışır → ayrı alt ağaçlar (`out\fk`, `out\fK_`). PASTERICH'ten SONRA çalışır (ikisi de `fK` yazar) |
 | PASTERICH+PLAINPASTE | Stilli/formatsız yapıştırma; **Ctrl+V akıllı: UDE-içi formatlı, harici FORMATSIZ (varsayılan, 2026-07); Ctrl+Shift+V + sağ tık "Formatlı Yapıştır" = formatlı** | `text.hj` paste yolu; CF_HTML `DataFlavor.allHtmlFlavor`; `PasteMode` bayrağı; `PasteKeys` dispatcher (`WPAppManager.main` inject) |
@@ -82,6 +83,40 @@ bir `foreach` döngüsü (default-on, `$env:X -ne '0'`) veya ayrı bloklarla yö
 
 Obfuscated adlar platformlar arası **AYNI** (aynı UDE build'i) → Mac patcher'ları çoğunlukla
 verbatim çalışır. Hedefleri yamadan önce `javap`/`jar tf` ile DOĞRULA.
+
+### BGIMG — arka plan resmi (antet) yavaşlığı (2026-11)
+
+Kök neden **bizim regresyonumuz** (Mac'te bulundu ve ölçüldü): IMGFULL ile PASTEIMG
+`wp.b.at` içindeki `drawImage`'a BICUBIC ipucu koyuyordu, "satır-içi imaj keskinliği"
+sanılarak. O çağrı sayfanın **arka plan resmi** (antet); satır-içi imajlar `at`'tan hiç
+geçmez. Bicubic ölçekleme Java2D'de hızlandırılmaz (`D3DDrawImage.renderImageXform` da
+OpenGL'deki gibi yazılım üst sınıfına devreder; D3D kapalıyken zaten yazılım) → görünür
+sayfa alanı HER boyamada işlemcide ölçeklenir. Mac ölçümü: tam boyama 4,5 ms yerine
+92–116 ms, tuş vuruşu ~100 ms. **Windows'ta süre ÖLÇÜLMEDİ** (bu makinede pwsh/Windows
+JDK yok); mekanizma kaynak koddan aynı, büyüklük farklı olabilir.
+
+Çözüm `scripts/bgimage/`: iki eski bicubic sarması kaldırıldı; `BgPaint` resmi cihaz
+piksel boyutuna **bir kez** (kademeli yarılama + bicubic) ölçekleyip `(kaynak kimliği,
+cihaz w×h)` anahtarlı önbellekten çizer. Hedefe göre:
+- **ekran yüzeyi** (`TYPE_RASTER_SCREEN`; D3D VolatileImage arka tamponu): ölçekleme arka
+  plan iş parçacığında, hazır olana dek stok çizim, sonra pencereler repaint;
+- **bellek-içi görüntü** (`TYPE_IMAGE_BUFFER`): ölçekleme çağıran iş parçacığında bir kez,
+  sonra önbellek. **Windows'a özgü ve şart:** D3D kapalı/yüzey kayıpken VolatileImage'ın
+  yazılım yedeği ve `OffScreenImage` arka tamponu `TYPE_IMAGE_BUFFER` bildirir (Codex
+  JDK kaynağından doğruladı) → Mac sürümündeki "ekran değilse doğrudan bicubic" kuralı bu
+  makinelerde yavaşlığı AYNEN bırakırdı. Bu yüzden `BgPaint.java` Mac kopyasından
+  bilinçli olarak FARKLI (ayrıca `PrinterGraphics`/`TYPE_PRINTER` → tek seferlik bicubic,
+  girdi-başına `building` bayrağı, `deviceSize` taşma koruması);
+- **yazıcı**: eski davranış.
+Cihaz ölçeği `getTransform()`'dan DEĞİL `getFontRenderContext().getTransform()`'dan okunur
+(%125/%150 kesirli ölçekte `paintDoubleBufferedFPScales` ölçeği transform'a koyar, %200'de
+yüzey gizler; FRC iki durumda da gerçek ölçeği verir). `BgImagePatch` tam olarak 1 çağrı
+yeri bekler; farklıysa çıkış kodu 3 → apply betiği uyarıp atlar (build durmaz, resim stok
+hızlı çizilir). Eski sarmayla yamalanmış bayat jar'da 2 çağrı yeri görür ve atlar →
+her zaman taze `download` ile yamala. Teşhis: `UDE_BGLOG=1` → `%LOCALAPPDATA%/ude-bgimage.txt`.
+Test: `tests/BgPaintTest.java` (başlıkta komutlar). Yama bileşimi (IMGFULL → PASTEIMG →
+BGIMG, idempotans, bayat jar) macOS'ta JDK 11 ile ham 5.4.21 jar'ında doğrulandı;
+`apply-bgimage.ps1` ve EXE **Windows'ta çalıştırılmadı**.
 
 ## Windows uyarlamaları (Mac'ten farklar)
 

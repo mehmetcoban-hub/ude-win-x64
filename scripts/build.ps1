@@ -21,6 +21,7 @@ param(
   [switch]$NoBufRead,
   [switch]$NoZemberekLazy,
   [switch]$NoPasteImg,
+  [switch]$NoBgImg,
   [switch]$NoFopFonts,
   [switch]$NoCaretFix,
   [switch]$NoZoomKeys,
@@ -53,6 +54,7 @@ if ($NoPdfFresh)      { $env:PDFFRESH = '0' }
 if ($NoBufRead)       { $env:BUFREAD = '0' }
 if ($NoZemberekLazy)  { $env:ZEMBEREKLAZY = '0' }
 if ($NoPasteImg)      { $env:PASTEIMG = '0' }
+if ($NoBgImg)         { $env:BGIMG = '0' }
 if ($NoFopFonts)      { $env:FOPFONTS = '0' }
 if ($NoCaretFix)      { $env:CARETFIX = '0' }
 if ($NoZoomKeys)      { $env:ZOOMKEYS = '0' }
