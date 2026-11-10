@@ -71,6 +71,7 @@ function Invoke-Patch {
     @{ env='PDFFRESH';  name='PDFFRESH';  script='pdffresh\apply-pdffresh.ps1' },
     @{ env='BUFREAD';   name='BUFREAD';   script='bufread\apply-bufread.ps1' },
     @{ env='PASTEIMG';  name='PASTEIMG';  script='pasteimg\apply-pasteimg.ps1' },
+    @{ env='BGIMG';     name='BGIMG';     script='bgimage\apply-bgimage.ps1' },
     @{ env='FOPFONTS';  name='FOPFONTS';  script='fopfonts\apply-fopfonts.ps1' },
     @{ env='CARETFIX';  name='CARETFIX';  script='caretfix\apply-caretfix.ps1' },
     @{ env='ZOOMKEYS';  name='ZOOMKEYS';  script='zoomkeys\apply-zoomkeys.ps1' },

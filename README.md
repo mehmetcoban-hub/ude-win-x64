@@ -56,6 +56,12 @@ açık** — kapatmak için ilgili `-No…` bayrağı (bkz. *Manuel derleme*):
   çağrısı, arayüz iş parçacığında); resimli büyük UDF'lerde saniyelerce donma artık yok.
   Kelime Denetimi kapalıyken Türkçe sözlük (Zemberek) açılışta yüklenmez (~0,4 sn + ~8 MB
   bellek tasarrufu); sağ tık yazım önerileri her seferinde sözlüğü yeniden kurmaz.
+- 🖼️ **Antetli belgede takılmayan yazım** — arka plan resmi (antet; JPG/PNG) eklenen belgede
+  resim **her ekran boyamasında** yeniden, yüksek kaliteli (bicubic) ölçekleniyordu; bu, bu
+  derlemenin kendi eski bir yamasından kaynaklanıyordu ve yazarken/kaydırırken uygulamayı
+  ağırlaştırıyordu. Artık resim ekrandaki boyutuna **bir kez** ölçeklenip önbellekten çizilir
+  (macOS sürümünde ölçüldü: tuş vuruşu başına ~100 ms → ~5 ms). Yakınlaştırma değişince resim
+  kısa bir an kaba görünüp netleşebilir.
 
 ## 👩‍⚖️ Kolay kurulum — tek satır
 
@@ -131,7 +137,8 @@ cd ude-win-x64
 satır-içi imaj tam-çöz (`-NoImgFull`), imaj boyutlandırma (`-NoImgResize`), antet
 (`-NoAntet`), taze PDF (`-NoPdfFresh`), PDF'te Türkçe harf (`-NoFopFonts`), zoom imleç
 hizası (`-NoCaretFix`), Ctrl+/Ctrl− klavye zoom (`-NoZoomKeys`), tamponlu belge okuma
-(`-NoBufRead`), tembel Zemberek yüklemesi (`-NoZemberekLazy`).
+(`-NoBufRead`), tembel Zemberek yüklemesi (`-NoZemberekLazy`), arka plan resmi önbellekli
+çizimi (`-NoBgImg`).
 
 > **NOT:** Çıktıyı dosyaya yönlendirmeyin (`>`, `2>&1`, `| Tee`). javac'in bilgi-amaçlı
 > "Note: deprecated API" satırı PowerShell 5.1'de yönlendirilince build'i durdurur. Düz
